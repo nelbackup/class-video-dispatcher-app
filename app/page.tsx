@@ -29,23 +29,14 @@ export default function AttendanceRecorder() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchRoster = async () => {
-    const { data } = await supabase
-      .from('students')
-      .select(`
-        id,
-        full_name,
-        parent_name,
-        class_code,
-        video_dispatches (
-          open_count,
-          first_opened_at,
-          created_at
-        )
-      `)
-      .order('full_name');
-
-    if (data) {
-      setStudents(data as unknown as Student[]);
+    try {
+      const res = await fetch('/api/students', { cache: 'no-store' });
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setStudents(data);
+      }
+    } catch (err) {
+      console.error('Failed to load roster:', err);
     }
   };
 
