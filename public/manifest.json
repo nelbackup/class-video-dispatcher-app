@@ -1,0 +1,8 @@
+{
+  "name": "Class Video Dispatcher",
+  "short_name": "ClassCam",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0284c7"
+}

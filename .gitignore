@@ -1,0 +1,26 @@
+Set-Content -Path ".gitignore" -Encoding utf8 -Value @'
+# Dependencies
+node_modules/
+/.pnp
+.pnp.js
+
+# Next.js build output
+.next/
+out/
+build/
+
+# Environment files with secrets (NEVER COMMIT)
+.env*.local
+.env
+
+# Vercel & logs
+.vercel
+*.log
+npm-debug.log*
+
+# OS & Editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+'@
