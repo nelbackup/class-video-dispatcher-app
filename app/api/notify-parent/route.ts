@@ -1,13 +1,21 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseServer';
-import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Configure the Gmail transport
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.GMAIL_USER,
+    pass: process.env.GMAIL_APP_PASSWORD,
+  },
+});
 
 export async function POST(req: Request) {
   try {
     const { studentId, storagePath } = await req.json();
 
+    // 1. Fetch student info
     const { data: student, error: studentErr } = await supabaseAdmin
       .from('students')
       .select('*')
@@ -20,6 +28,7 @@ export async function POST(req: Request) {
 
     const expiryDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
+    // 2. Insert dispatch record
     const { data: dispatch, error: dispatchErr } = await supabaseAdmin
       .from('video_dispatches')
       .insert({
@@ -35,11 +44,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Failed to initialize dispatch log' }, { status: 500 });
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://class-video-dispatcher-app.vercel.app';
     const trackingUrl = `${appUrl}/watch/${dispatch.id}`;
 
-    await resend.emails.send({
-      from: process.env.EMAIL_FROM || 'onboarding@resend.dev',
+    // 3. Send email using your Gmail account
+    const mailOptions = {
+      from: `"Class Admissions" <${process.env.GMAIL_USER}>`,
       to: student.parent_email,
       subject: `Interview Class Video: ${student.full_name}`,
       html: `
@@ -57,8 +67,12 @@ export async function POST(req: Request) {
           </p>
         </div>
       `,
-    });
+    };
 
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Gmail sent successfully. Message ID:', info.messageId);
+
+    // 4. Mark status as delivered
     await supabaseAdmin
       .from('video_dispatches')
       .update({ email_status: 'delivered' })
@@ -66,6 +80,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, trackingUrl });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    console.error('Gmail delivery error:', err);
+    return NextResponse.json({ error: `Gmail error: ${err.message}` }, { status: 500 });
   }
 }
